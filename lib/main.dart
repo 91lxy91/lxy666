@@ -32,20 +32,25 @@ class MainTabPage extends StatefulWidget {
 }
 
 class _MainTabPageState extends State<MainTabPage> {
-  // 当前选中底部下标
   int _currentIndex = 0;
 
-  // 三个页面数组
-  final List<Widget> _pages = [
-    const ProfilePage(),    // 我的资料
-    const BuyPage(),        // 课程购买
-    CourseDetailPage(course: Course(
-        title: "默认详情",
-        subtitle: "底部3号页面",
-        status: CourseStatus.completed,
-        avatarUrl: "https://picsum.photos/200/200?random=99"
-    )),
-  ];
+  late List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    // 初始化页面，将BuyPage设为可更新状态
+    _pages = [
+      const ProfilePage(),
+      const BuyPage(),
+      CourseDetailPage(course: Course(
+          title: "默认详情",
+          subtitle: "底部3号页面",
+          status: CourseStatus.completed,
+          avatarUrl: "https://picsum.photos/200/200?random=99"
+      )),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +85,7 @@ class _MainTabPageState extends State<MainTabPage> {
   }
 }
 
-// 个人资料页（不变）
+// 个人资料页
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
@@ -186,7 +191,6 @@ class ProfilePage extends StatelessWidget {
                       const SizedBox(width: 14),
                       OutlinedButton(
                         onPressed: () {
-                          // 点击直接切换到底部第2个页面
                           context.findAncestorStateOfType<_MainTabPageState>()?.setState(() {
                             context.findAncestorStateOfType<_MainTabPageState>()!._currentIndex = 1;
                           });
@@ -283,6 +287,16 @@ class Course {
     required this.status,
     required this.avatarUrl,
   });
+
+  // 复制课程并修改状态（用于更新）
+  Course copyWith({CourseStatus? status}) {
+    return Course(
+      title: title,
+      subtitle: subtitle,
+      status: status ?? this.status,
+      avatarUrl: avatarUrl,
+    );
+  }
 }
 
 class BuyPage extends StatefulWidget {
@@ -295,16 +309,24 @@ class BuyPage extends StatefulWidget {
 class _BuyPageState extends State<BuyPage> {
   FilterStatus _selectedFilter = FilterStatus.all;
 
-  final List<Course> courses = const [
-    Course(title: 'Flutter入门', subtitle: '第1课 · 已完成', status: CourseStatus.completed, avatarUrl: 'https://picsum.photos/200/200?random=1'),
-    Course(title: 'Dart语言基础', subtitle: '第2课 · 已完成', status: CourseStatus.completed, avatarUrl: 'https://picsum.photos/200/200?random=2'),
-    Course(title: 'Widget组件体系', subtitle: '第3课 · 已完成', status: CourseStatus.completed, avatarUrl: 'https://picsum.photos/200/200?random=3'),
-    Course(title: '布局进阶', subtitle: '第4课 · 进行中', status: CourseStatus.inProgress, avatarUrl: 'https://picsum.photos/200/200?random=4'),
-    Course(title: '图片与占位图', subtitle: '第5课 · 进行中', status: CourseStatus.inProgress, avatarUrl: 'https://picsum.photos/200/200?random=5'),
-    Course(title: 'Stack层叠布局', subtitle: '第6课 · 未开始', status: CourseStatus.notStarted, avatarUrl: 'https://picsum.photos/200/200?random=6'),
-    Course(title: 'List与ListView', subtitle: '第7课 · 未开始', status: CourseStatus.notStarted, avatarUrl: 'https://picsum.photos/200/200?random=7'),
-    Course(title: '页面导航与路由', subtitle: '第8课 · 未开始', status: CourseStatus.notStarted, avatarUrl: 'https://picsum.photos/200/200?random=8'),
-  ];
+  // 改为可变列表，支持状态修改
+  late List<Course> courses;
+
+  @override
+  void initState() {
+    super.initState();
+    // 初始化课程数据
+    courses = [
+      Course(title: 'Flutter入门', subtitle: '第1课 · 已完成', status: CourseStatus.completed, avatarUrl: 'https://picsum.photos/200/200?random=1'),
+      Course(title: 'Dart语言基础', subtitle: '第2课 · 已完成', status: CourseStatus.completed, avatarUrl: 'https://picsum.photos/200/200?random=2'),
+      Course(title: 'Widget组件体系', subtitle: '第3课 · 已完成', status: CourseStatus.completed, avatarUrl: 'https://picsum.photos/200/200?random=3'),
+      Course(title: '布局进阶', subtitle: '第4课 · 进行中', status: CourseStatus.inProgress, avatarUrl: 'https://picsum.photos/200/200?random=4'),
+      Course(title: '图片与占位图', subtitle: '第5课 · 进行中', status: CourseStatus.inProgress, avatarUrl: 'https://picsum.photos/200/200?random=5'),
+      Course(title: 'Stack层叠布局', subtitle: '第6课 · 未开始', status: CourseStatus.notStarted, avatarUrl: 'https://picsum.photos/200/200?random=6'),
+      Course(title: 'List与ListView', subtitle: '第7课 · 未开始', status: CourseStatus.notStarted, avatarUrl: 'https://picsum.photos/200/200?random=7'),
+      Course(title: '页面导航与路由', subtitle: '第8课 · 未开始', status: CourseStatus.notStarted, avatarUrl: 'https://picsum.photos/200/200?random=8'),
+    ];
+  }
 
   List<Course> get filteredCourses {
     switch (_selectedFilter) {
@@ -317,6 +339,57 @@ class _BuyPageState extends State<BuyPage> {
       case FilterStatus.notStarted:
         return courses.where((c) => c.status == CourseStatus.notStarted).toList();
     }
+  }
+
+  // 底部弹窗：修改课程状态
+  void _showStatusBottomSheet(Course course, int index) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                '修改课程状态',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              _buildStatusOption('已完成', CourseStatus.completed, course, index),
+              _buildStatusOption('进行中', CourseStatus.inProgress, course, index),
+              _buildStatusOption('未开始', CourseStatus.notStarted, course, index),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // 状态选项
+  Widget _buildStatusOption(String text, CourseStatus status, Course course, int index) {
+    return ListTile(
+      title: Text(text),
+      leading: Icon(
+        Icons.circle,
+        color: status == CourseStatus.completed
+            ? Colors.green
+            : status == CourseStatus.inProgress
+            ? Colors.lightBlue
+            : Colors.grey,
+        size: 16,
+      ),
+      onTap: () {
+        setState(() {
+          courses[index] = course.copyWith(status: status);
+        });
+        Navigator.pop(context);
+      },
+    );
   }
 
   @override
@@ -401,13 +474,30 @@ class _BuyPageState extends State<BuyPage> {
                 ? const Center(child: Text('暂无课程', style: TextStyle(fontSize: 16)))
                 : ListView.separated(
               itemCount: filteredCourses.length,
-              separatorBuilder: (context, index) => const Divider(height: 1, indent: 70),
+              separatorBuilder: (context, index) => const Divider(height: 1, indent: 90),
               itemBuilder: (context, index) {
                 final course = filteredCourses[index];
                 return ListTile(
-                  leading: CircleAvatar(
-                    backgroundImage: NetworkImage(course.avatarUrl),
-                    radius: 30,
+                  // 左侧：状态图标 + 课程头像
+                  leading: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // ⚪状态图标（点击修改状态）
+                      GestureDetector(
+                        onTap: () => _showStatusBottomSheet(course, index),
+                        child: Icon(
+                          Icons.circle,
+                          color: _getStatusColor(course.status),
+                          size: 16,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // 课程头像
+                      CircleAvatar(
+                        backgroundImage: NetworkImage(course.avatarUrl),
+                        radius: 30,
+                      ),
+                    ],
                   ),
                   title: Text(course.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
                   subtitle: Text(course.subtitle, style: TextStyle(fontSize: 15, color: Colors.grey[600])),
@@ -428,6 +518,18 @@ class _BuyPageState extends State<BuyPage> {
         ],
       ),
     );
+  }
+
+  // 获取状态颜色
+  Color _getStatusColor(CourseStatus status) {
+    switch (status) {
+      case CourseStatus.completed:
+        return Colors.green;
+      case CourseStatus.inProgress:
+        return Colors.lightBlue;
+      case CourseStatus.notStarted:
+        return Colors.grey;
+    }
   }
 
   Widget _buildFilterTabBar() {
